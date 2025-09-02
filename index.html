@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>ANALYZER - Build 5.0 (Mode Select Refactor)</title>
+    <title>ANALYZER - Build 8.0 (UI/UX Overhaul) [RECOVERY BUILD]</title>
     <style>
         :root {
             --color-background-primary: #08080A; --color-element-primary: #141414; --color-funckey-primary: #2A2A2A;
@@ -14,7 +14,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; width: 100%; overflow: hidden; background-color: var(--color-background-primary); color: var(--color-text-passive); font-family: var(--font-family); transition: background-color var(--transition-speed), color var(--transition-speed); }
         body { display: flex; justify-content: center; align-items: center; }
-        body.touch-device #dpad-container { display: grid; }
         .scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background: linear-gradient(to bottom, rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%); background-size: 100% 4px; z-index: 1000; }
         .window { display: none; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; padding: 2vw; animation: fadeIn 0.5s ease-in-out; }
         .window.active { display: flex; }
@@ -22,27 +21,28 @@
         @keyframes blink { 50% { opacity: 0; } }
         
         button { background: none; border: none; color: inherit; font-family: inherit; font-size: inherit; cursor: pointer; padding: 0; }
-        button:focus-visible, .key:focus-visible, .level-button:focus-visible, input:focus-visible { outline: 3px solid var(--color-accent-bios); outline-offset: 2px; }
+        button:focus-visible, .key:focus-visible, .level-button:focus-visible, .shop-item:focus-visible, .dpad-btn:focus-visible { outline: 3px solid var(--color-accent-bios); outline-offset: 2px; }
 
         .big-button { background-color: transparent; border: 2px solid var(--color-accent-primary); color: var(--color-accent-primary); padding: 15px 30px; font-size: 1.5em; text-transform: uppercase; transition: background-color var(--transition-speed), color var(--transition-speed); }
         .big-button:hover { background-color: var(--color-accent-primary); color: var(--color-background-primary); }
+        .big-button.disabled { pointer-events: none; opacity: 0.4; border-color: var(--color-funckey-primary); color: var(--color-funckey-primary); }
+
+        .container { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 1000px; text-align: center; }
+        .centered-content { display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; gap: 1.5rem; }
 
         #preload .bios-text { width: 100%; max-width: 600px; color: var(--color-accent-bios); }
         #preload .bios-text span { animation: blink 1s step-end infinite; }
         #title h1 { color: var(--color-accent-primary); text-shadow: 0 0 10px var(--color-accent-primary); font-size: clamp(2em, 8vw, 5em); }
         
-        .container { display: flex; flex-direction: column; gap: 2rem; width: 100%; max-width: 1000px; text-align: center; }
-        #profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; padding: 1rem; max-height: 60vh; overflow-y: auto; }
+        #profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; padding: 1rem; max-height: 60vh; overflow-y: auto; width: 100%; }
         .profile-card { position: relative; border: 2px solid var(--color-funckey-primary); padding: 2rem 1rem; text-transform: uppercase; font-size: 1.5em; transition: all var(--transition-speed); }
         .profile-card:hover { border-color: var(--color-accent-primary); color: var(--color-accent-primary); }
         .delete-profile-btn { position: absolute; top: 5px; right: 5px; width: 30px; height: 30px; font-size: 20px; color: var(--color-text-passive); }
         .delete-profile-btn:hover { color: var(--color-accent-error); }
         
-        #modeSelect-container { gap: 2rem; }
         .mode-button { font-size: 2.5em; padding: 3rem 2rem; width: 100%; max-width: 400px; }
 
-        #player-container, #validation-container { display: flex; flex-direction: column; align-items: center; gap: 2rem; width: 100%; height: 100%; padding: 2vh 2vw; justify-content: center; }
-        #player-name-output { border: 2px solid var(--color-accent-primary); background-color: var(--color-element-primary); color: var(--color-text-active); padding: 15px 25px; font-size: clamp(1.5em, 4vw, 2.5em); min-height: 80px; width: 100%; max-width: 800px; text-align: center; letter-spacing: 0.1em; text-transform: uppercase; flex-shrink: 0; }
+        #player-name-output { border: 2px solid var(--color-accent-primary); background-color: var(--color-element-primary); color: var(--color-text-active); padding: 15px 25px; font-size: clamp(1.5em, 4vw, 2.5em); min-height: 80px; width: 100%; max-width: 800px; text-align: center; letter-spacing: 0.1em; text-transform: uppercase; flex-shrink: 0; margin-bottom: 1rem; }
         #player-name-output::after { content: '_'; animation: blink 1s step-end infinite; }
         
         #keyboard-wrapper { flex-grow: 1; display: flex; justify-content: center; align-items: center; width: 100%; }
@@ -53,32 +53,97 @@
         .key.funckey { background-color: var(--color-funckey-primary); color: var(--color-accent-primary); }
         .key.active { background-color: var(--color-accent-primary); color: var(--color-background-primary); }
         
-        #mainMenu-header { border-bottom: 2px solid var(--color-funckey-primary); padding-bottom: 1rem; margin-bottom: 1rem; }
+        #mainMenu-header { border-bottom: 2px solid var(--color-funckey-primary); padding-bottom: 1rem; margin-bottom: 1rem; width: 100%; }
         #mainMenu-header h2 { font-size: 2em; color: var(--color-text-active); }
         #mainMenu-player-name, #mainMenu-total-points { color: var(--color-accent-primary); font-weight: bold; }
-        #level-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem; padding: 1rem; }
+        .mainMenu-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin-top: 1rem; }
+        #level-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem; padding: 1rem; width:100%; }
         .level-button { position: relative; display: flex; justify-content: center; align-items: center; aspect-ratio: 1 / 1; border: 2px solid var(--color-funckey-primary); background-color: var(--color-element-primary); color: var(--color-text-passive); font-size: 2.5em; transition: all var(--transition-speed); }
         .level-button .highscore { display: none; position: absolute; bottom: 5px; left: 0; right: 0; font-size: 0.3em; color: var(--color-accent-bios); }
         .level-button:hover .highscore { display: block; }
         .level-button:not(.completed):hover { border-color: var(--color-accent-primary); color: var(--color-accent-primary); text-shadow: 0 0 10px var(--color-accent-primary); }
         .level-button.completed { border-color: var(--color-funckey-primary); background-color: transparent; opacity: 0.6; pointer-events: none; }
         .level-button.completed .lock-icon { width: 40%; height: 40%; fill: var(--color-funckey-primary); }
+
+        .page-header { width: 100%; text-align: center; border-bottom: 2px solid var(--color-funckey-primary); padding-bottom: 1rem; }
+        #shop-items-container { width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; padding: 1rem; max-height: 70vh; overflow-y: auto; }
+        .shop-item { display: flex; flex-direction: column; text-align: left; padding: 1rem; border: 2px solid var(--color-funckey-primary); transition: all var(--transition-speed); }
+        .shop-item:hover { border-color: var(--color-accent-bios); }
+        .shop-item h3 { color: var(--color-accent-bios); }
+        .shop-item-details { flex-grow: 1; }
+        .shop-item-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
+        .shop-item-cost { font-size: 1.5em; color: var(--color-accent-primary); }
         
-        #game { gap: 1rem; }
-        #game-hud { font-size: 1.2em; color: var(--color-text-active); flex-shrink: 0; padding: 10px; width: 100%; display: flex; justify-content: space-between; align-items: center; }
+        #stats-display { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; padding: 1rem; width: 100%; }
+        .stat-card { background-color: var(--color-element-primary); padding: 1rem; }
+        .stat-card .value { font-size: 2em; color: var(--color-accent-primary); }
+        #achievements-grid { width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; padding: 1rem; max-height: 50vh; overflow-y: auto; }
+        .achievement-card { padding: 1rem; border: 2px solid var(--color-funckey-primary); text-align: left; }
+        .achievement-card.unlocked { border-color: var(--color-accent-bios); }
+        .achievement-card h3 { color: var(--color-accent-bios); }
+        .achievement-card.locked h3 { color: var(--color-funckey-primary); }
+        .achievement-card.locked p { opacity: 0.5; }
+
+        #game { justify-content: flex-start; padding: 0; position: relative; }
+        #game-hud { font-size: 1.2em; color: var(--color-text-active); flex-shrink: 0; padding: 10px; width: 100%; display: flex; justify-content: space-between; align-items: center; height: 50px; z-index: 10; }
+        #dpad-toggle-btn { width: 40px; height: 40px; border: 1px solid var(--color-funckey-primary); background-color: var(--color-element-primary); }
+        #dpad-toggle-btn.active { background-color: var(--color-accent-bios); }
+        #dpad-toggle-btn svg { width: 70%; height: 70%; fill: var(--color-text-passive); pointer-events: none; }
+        #dpad-toggle-btn.active svg { fill: var(--color-background-primary); }
         #hud-target .collected { opacity: 0.4; }
+        #game-inventory { display: flex; gap: 1rem; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; }
+        .inventory-item { display: flex; align-items: center; gap: 0.5rem; }
+        .inventory-item .key-hint { padding: 2px 5px; border: 1px solid var(--color-text-passive); border-radius: 3px; font-size: 0.8em; }
+
         #game-canvas-wrapper { width: 100%; flex-grow: 1; display: flex; justify-content: center; align-items: center; }
         #game-canvas { background-color: #0a0a0a; border: 2px solid var(--color-funckey-primary); box-shadow: 0 0 10px var(--color-funckey-primary); }
         body.is-shaking #game-canvas { animation: shake 0.3s linear; }
         @keyframes shake { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-4px, 4px); } 50% { transform: translate(4px, -4px); } 75% { transform: translate(-4px, 4px); } }
 
-        #dpad-container { display: none; flex-shrink: 0; width: 100%; height: 160px; padding: 10px; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); justify-items: center; align-items: center; max-width: 280px; margin: 0 auto; }
-        .dpad-btn { width: 70px; height: 70px; border-radius: 50%; border: 3px solid var(--color-accent-primary); color: var(--color-accent-primary); font-size: 2em; display: flex; justify-content: center; align-items: center; user-select: none; }
-        .dpad-btn:active { background-color: var(--color-accent-primary); color: var(--color-background-primary); }
-        #dpad-up { grid-column: 2; grid-row: 1; }
-        #dpad-left { grid-column: 1; grid-row: 2; }
-        #dpad-down { grid-column: 2; grid-row: 2; }
-        #dpad-right { grid-column: 3; grid-row: 2; }
+        #dpad-container {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 180px;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 2px;
+            background-color: rgba(10, 10, 10, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+            z-index: 10;
+        }
+        body.touch-device #dpad-container.visible { display: grid; }
+        .dpad-btn {
+            background-color: var(--color-element-primary);
+            border: 1px solid var(--color-funckey-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 100ms;
+            user-select: none;
+        }
+        .dpad-btn svg {
+            width: 60%;
+            height: 60%;
+            fill: var(--color-text-passive);
+            transition: fill 100ms;
+            pointer-events: none;
+        }
+        .dpad-btn:active {
+            background-color: var(--color-accent-primary);
+            transform: scale(0.95);
+        }
+        .dpad-btn:active svg {
+            fill: var(--color-background-primary);
+        }
+        #dpad-up { grid-area: 1 / 2 / 2 / 3; }
+        #dpad-left { grid-area: 2 / 1 / 3 / 2; }
+        #dpad-down { grid-area: 3 / 2 / 4 / 3; }
+        #dpad-right { grid-area: 2 / 3 / 3 / 4; }
 
         #validation-output { border: 2px solid var(--color-accent-primary); background-color: var(--color-element-primary); color: var(--color-text-active); padding: 15px 25px; font-size: clamp(1.5em, 4vw, 2.5em); min-height: 80px; width: 100%; max-width: 800px; text-align: center; letter-spacing: 0.1em; text-transform: uppercase; flex-shrink: 0; }
         #validation-output.error { animation: shake 0.3s linear; }
@@ -100,11 +165,26 @@
 <body>
     <div class="scanlines"></div>
 
-    <div id="preload" class="window active"><div class="bios-text"><p>ANALYZER BIOS v1.0 (c) McLaure</p><p>Initializing KERNEL...</p><p>Memory Check: 65536K OK</p><p>Loading UI assets... DONE</p><p>Awaiting user input...<span>_</span></p></div></div>
-    <div id="title" class="window"><h1>ANALYZER INTERFACE</h1><button id="start-btn" class="big-button">INICIAR Y ENTRAR A PANTALLA COMPLETA</button></div>
+    <div id="preload" class="window active">
+        <div class="container centered-content">
+            <div class="bios-text">
+                <p>ANALYZER BIOS v1.0 (c) McLaure</p>
+                <p>Initializing KERNEL...</p>
+                <p>Memory Check: 65536K OK</p>
+                <p>Loading UI assets... DONE</p>
+                <p id="preflight-status">Running preflight checks...<span>_</span></p>
+            </div>
+        </div>
+    </div>
+    <div id="title" class="window">
+        <div class="container centered-content">
+            <h1>ANALYZER INTERFACE</h1>
+            <button id="start-btn" class="big-button">INICIAR Y ENTRAR A PANTALLA COMPLETA</button>
+        </div>
+    </div>
     
     <div id="profiles" class="window">
-        <div class="container">
+        <div class="container centered-content">
             <h2>SELECCIONA TU PERFIL DE OPERADOR</h2>
             <div id="profile-grid"></div>
             <button id="new-player-btn" class="big-button">NUEVO OPERADOR</button>
@@ -112,37 +192,69 @@
     </div>
     
     <div id="modeSelect" class="window">
-        <div id="modeSelect-container" class="container">
+        <div class="container centered-content">
             <h2>SELECCIONA MODO DE JUEGO</h2>
             <button class="big-button mode-button" data-mode="MAZE">MODO LABERINTO</button>
             <button class="big-button mode-button" data-mode="OPEN_FIELD">MODO CAMPO ABIERTO</button>
         </div>
     </div>
 
-    <div id="player" class="window"><div id="player-container" class="container"><h2>INGRESA TU NOMBRE DE OPERADOR</h2><div id="player-name-output"></div><div id="keyboard-wrapper"><div id="virtualKeyboard"></div></div></div></div>
+    <div id="player" class="window"><div class="container centered-content"><h2>INGRESA TU NOMBRE DE OPERADOR</h2><div id="player-name-output"></div><div id="keyboard-wrapper"><div id="virtualKeyboard"></div></div></div></div>
     <div id="mainMenu" class="window">
-        <div id="mainMenu-container" class="container">
+        <div class="container centered-content">
             <div id="mainMenu-header">
                 <h2 id="mainMenu-title">MENU DE NIVELES</h2>
                 <p>OPERADOR: <span id="mainMenu-player-name"></span> | PUNTOS: <span id="mainMenu-total-points">0</span></p>
             </div>
             <div id="level-grid"></div>
-            <button id="change-mode-btn" class="big-button" style="margin-top: 1rem;">CAMBIAR MODO</button>
+            <div class="mainMenu-buttons">
+                <button id="stats-btn" class="big-button">ESTADISTICAS</button>
+                <button id="terminal-btn" class="big-button">TERMINAL</button>
+                <button id="change-mode-btn" class="big-button">CAMBIAR MODO</button>
+            </div>
+        </div>
+    </div>
+    <div id="terminal" class="window">
+        <div class="container centered-content">
+            <div class="page-header">
+                <h2>TERMINAL DE MEJORAS</h2>
+                <p>PUNTOS DISPONIBLES: <span id="terminal-total-points">0</span></p>
+            </div>
+            <div id="shop-items-container"></div>
+            <button id="back-to-menu-btn" class="big-button">VOLVER AL MENU</button>
+        </div>
+    </div>
+    <div id="stats" class="window">
+        <div class="container centered-content">
+            <div class="page-header"><h2>REGISTRO DEL OPERADOR</h2></div>
+            <div id="stats-display"></div>
+            <h3>LOGROS DESBLOQUEADOS</h3>
+            <div id="achievements-grid"></div>
+            <button id="stats-back-btn" class="big-button">VOLVER AL MENU</button>
         </div>
     </div>
     <div id="game" class="window">
         <div id="game-hud">
             <span id="hud-target"></span>
-            <div class="score-display">
-                <span id="hud-score"></span> | <span id="hud-total-points"></span>
+            <div id="game-inventory"></div>
+            <div class="hud-right-panel">
+                <button id="dpad-toggle-btn"><svg viewBox="0 0 24 24"><path d="M11 2v4.59L3.91 13.5H2v2h2.3l8.5 8.5H11v-2h-1.59L4 16.09V15h1.59l4-4H11V9.41l-4-4H5.41L4 4.59V3h1.09L11 8.59V7h2v1.59l4-4H18.59L20 3h-1.09l-5.41 5.41V2h-2zm4.59 0L14 3.59 19.41 9H21v1.59l-5.41 5.41H17v2h-1.59l-8.5 8.5H9v-2h2.3l8.29-8.29L20 13.5V13h-1.09l-4.5-4.5L13 10V4.01l2.59-2.01zM11 14.59L4.91 21H4v-1.09l5.41-5.41H11v2zm0-5.17L5.41 4H4v1.09L9.41 11H11V9.42z"/></svg></button>
+                <div class="score-display">
+                    <span id="hud-score"></span> | <span id="hud-total-points"></span>
+                </div>
             </div>
         </div>
         <div id="game-canvas-wrapper"><canvas id="game-canvas"></canvas></div>
-        <div id="dpad-container"><button class="dpad-btn" data-key="ArrowUp">?</button><button class="dpad-btn" data-key="ArrowLeft">?</button><button class="dpad-btn" data-key="ArrowDown">?</button><button class="dpad-btn" data-key="ArrowRight">?</button></div>
+        <div id="dpad-container">
+            <button class="dpad-btn" id="dpad-up" data-key="ArrowUp"><svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg></button>
+            <button class="dpad-btn" id="dpad-left" data-key="ArrowLeft"><svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg></button>
+            <button class="dpad-btn" id="dpad-down" data-key="ArrowDown"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></button>
+            <button class="dpad-btn" id="dpad-right" data-key="ArrowRight"><svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></button>
+        </div>
     </div>
     
     <div id="validation" class="window">
-        <div id="validation-container" class="container">
+        <div class="container centered-content">
             <h2>RECONSTRUYE EL COMANDO</h2>
             <div id="validation-output"></div>
             <div id="validation-keyboard-container"></div>
@@ -154,8 +266,10 @@
     </div>
     
     <div id="victory" class="window">
-        <h2>COMANDO EJECUTADO</h2>
-        <button id="victory-continue-btn" class="big-button">CONTINUAR</button>
+        <div class="container centered-content">
+            <h2>COMANDO EJECUTADO</h2>
+            <button id="victory-continue-btn" class="big-button">CONTINUAR</button>
+        </div>
     </div>
 
     <button id="settings-button">?</button>
@@ -168,50 +282,76 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const WORD_BANK = {
+                LEN_4: ["CODE", "DATA", "EXEC", "PING", "ROOT", "BASH", "BOOT", "LOAD"],
+                LEN_5: ["INPUT", "QUERY", "FETCH", "SHELL", "ADMIN", "LOGIN", "TOKEN", "PROXY"],
+                LEN_6: ["SIGNAL", "STREAM", "BUFFER", "KERNEL", "DAEMON", "DRIVER", "MODULE", "ACCESS"],
+                LEN_7: ["POINTER", "PROCESS", "SYSCALL", "COMMAND", "NETWORK", "ROUTER", "SERVICE", "ACCOUNT"],
+                LEN_8: ["FUNCTION", "VARIABLE", "REGISTER", "PROTOCOL", "FIREWALL", "SECURITY", "ENDPOINT", "INSTANCE"],
+                LEN_9: ["HANDSHAKE", "EXCEPTION", "INTERRUPT", "ALGORITHM", "FRAMEWORK", "CONTAINER", "RECURSIVE"],
+                LEN_11: ["AUTHENTICATE", "PERMISSION", "DECRYPTION", "COMPILATION", "OPTIMIZATION", "BACKTRACK"],
+                LEN_12_PLUS: ["SYNCHRONIZE", "ACKNOWLEDGE", "MULTITHREAD", "VIRTUALIZATION", "SUPERCOMPUTER", "NON-EUCLIDEAN", "SINGULARITY"]
+            };
+
             const LEVEL_CONFIG = {
                 MAZE: [
-                    { level: 1, commands: ["INIT", "BOOT", "LOAD"], gridSize: 50 },
-                    { level: 2, commands: ["PATH", "GRID", "CELL"], gridSize: 45 },
-                    { level: 3, commands: ["ROUTE", "BLOCK", "WALL"], gridSize: 45, enemies: [{ type: 'PATRULLA', startX: 3, startY: 1, params: { endX: 3, endY: 8, speed: 0.02 } }] },
-                    { level: 4, commands: ["TUNNEL", "ESCAPE", "EXIT"], gridSize: 40 },
-                    { level: 5, commands: ["CORRIDOR", "JUNCTION"], gridSize: 40, specialBlocks: [{ type: 'SLOW', col: 5, row: 5 }, { type: 'SLOW', col: 5, row: 6 }] },
-                    { level: 6, commands: ["COMPLEX", "NETWORK", "SYSTEM"], gridSize: 35, enemies: [{ type: 'RASTREADOR', startX: 10, startY: 10, params: { speed: 800 } }] },
-                    { level: 7, commands: ["DEADLOCK", "TRAPDOOR"], gridSize: 35, specialBlocks: [ { type: 'T-PORT', id: 1, targetId: 2, col: 1, row: 13, color: '#A43BFF' }, { type: 'T-PORT', id: 2, targetId: 1, col: 13, row: 1, color: '#A43BFF' } ] },
-                    { level: 8, commands: ["ALGORITHM", "RECURSIVE"], gridSize: 30 },
-                    { level: 9, commands: ["BACKTRACK", "EXPLORE"], gridSize: 30, enemies: [{ type: 'PATRULLA', startX: 1, startY: 5, params: { endX: 10, endY: 5, speed: 0.05 } }, { type: 'RASTREADOR', startX: 15, startY: 15, params: { speed: 700 } }] },
-                    { level: 10, commands: ["MINOTAUR", "DAEDALUS"], gridSize: 25 },
-                    { level: 11, commands: ["UNSOLVABLE", "PARADOX"], gridSize: 25, specialBlocks: [{ type: 'SOLID', col: 10, row: 10 }, { type: 'SOLID', col: 11, row: 10 }, { type: 'SOLID', col: 12, row: 10 }]},
-                    { level: 12, commands: ["SINGULARITY", "NON-EUCLIDEAN"], gridSize: 20 }
+                    { level: 1, commandCategory: 'LEN_4', gridSize: 50 },
+                    { level: 2, commandCategory: 'LEN_5', gridSize: 45 },
+                    { level: 3, commandCategory: 'LEN_5', gridSize: 45, enemies: [{ type: 'PATRULLA', startX: 3, startY: 1, params: { endX: 3, endY: 8, speed: 0.02 } }] },
+                    { level: 4, commandCategory: 'LEN_6', gridSize: 40, enemies: [{ type: 'PATRULLA', startX: 1, startY: 5, params: { endX: 8, endY: 5, speed: 0.03 } }, { type: 'PATRULLA', startX: 9, startY: 1, params: { endX: 9, endY: 8, speed: 0.025 } }] },
+                    { level: 5, commandCategory: 'LEN_6', gridSize: 40, specialBlocks: [{ type: 'SLOW', col: 5, row: 5 }, { type: 'SLOW', col: 5, row: 6 }, { type: 'SLOW', col: 6, row: 5 }], enemies: [{ type: 'PATRULLA', startX: 3, startY: 3, params: { endX: 10, endY: 3, speed: 0.03 } }] },
+                    { level: 6, commandCategory: 'LEN_7', gridSize: 35, enemies: [{ type: 'RASTREADOR', startX: 10, startY: 10, params: { speed: 800 } }] },
+                    { level: 7, commandCategory: 'LEN_7', gridSize: 35, specialBlocks: [ { type: 'T-PORT', id: 1, targetId: 2, col: 1, row: 13, color: '#A43BFF' }, { type: 'T-PORT', id: 2, targetId: 1, col: 13, row: 1, color: '#A43BFF' } ], enemies: [{ type: 'PATRULLA', startX: 7, startY: 1, params: { endX: 7, endY: 13, speed: 0.04 } }] },
+                    { level: 8, commandCategory: 'LEN_8', gridSize: 30, specialBlocks: [{ type: 'SLOW', col: 3, row: 3 }, { type: 'SLOW', col: 4, row: 3 }, { type: 'SLOW', col: 5, row: 3 }, { type: 'SLOW', col: 6, row: 3 }], enemies: [{ type: 'PATRULLA', startX: 1, startY: 10, params: { endX: 15, endY: 10, speed: 0.05 } }, { type: 'RASTREADOR', startX: 15, startY: 1, params: { speed: 750 } }] },
+                    { level: 9, commandCategory: 'LEN_9', gridSize: 30, enemies: [{ type: 'PATRULLA', startX: 1, startY: 5, params: { endX: 10, endY: 5, speed: 0.05 } }, { type: 'RASTREADOR', startX: 15, startY: 15, params: { speed: 700 } }] },
+                    { level: 10, commandCategory: 'LEN_9', gridSize: 25, specialBlocks: [{ type: 'SOLID', col: 10, row: 10 }, { type: 'SOLID', col: 11, row: 10 }, { type: 'SOLID', col: 12, row: 10 }, { type: 'SOLID', col: 10, row: 11 }, { type: 'SOLID', col: 12, row: 11 }, { type: 'SOLID', col: 10, row: 12 }, { type: 'SOLID', col: 11, row: 12 }, { type: 'SOLID', col: 12, row: 12 }], enemies: [{ type: 'RASTREADOR', startX: 1, startY: 1, params: { speed: 650 } }, { type: 'RASTREADOR', startX: 20, startY: 20, params: { speed: 750 } }] },
+                    { level: 11, commandCategory: 'LEN_11', gridSize: 25, specialBlocks: [ { type: 'T-PORT', id: 3, targetId: 4, col: 1, row: 1, color: '#FFC700' }, { type: 'T-PORT', id: 4, targetId: 3, col: 23, row: 23, color: '#FFC700' } ], enemies: [{ type: 'RASTREADOR', startX: 12, startY: 12, params: { speed: 600 } }] },
+                    { level: 12, commandCategory: 'LEN_12_PLUS', gridSize: 20, specialBlocks: [{ type: 'SLOW', col: 5, row: 5 }, { type: 'SOLID', col: 10, row: 10 }, { type: 'T-PORT', id: 5, targetId: 6, col: 1, row: 25, color: '#00FF8A' }, { type: 'T-PORT', id: 6, targetId: 5, col: 25, row: 1, color: '#00FF8A' }], enemies: [{ type: 'PATRULLA', startX: 1, startY: 13, params: { endX: 28, endY: 13, speed: 0.08 } }, { type: 'RASTREADOR', startX: 1, startY: 1, params: { speed: 600 } }, { type: 'RASTREADOR', startX: 28, startY: 28, params: { speed: 700 } }] }
                 ],
                 OPEN_FIELD: [
-                    { level: 1, commands: ["CODE", "DATA", "EXEC"], gridSize: 60 },
-                    { level: 2, commands: ["INPUT", "QUERY", "FETCH"], gridSize: 55 },
-                    { level: 3, commands: ["SIGNAL", "STREAM", "PULSE"], gridSize: 55, enemies: [{ type: 'PATRULLA', startX: 3, startY: 3, params: { endX: 10, endY: 3, speed: 0.03 } }] },
-                    { level: 4, commands: ["FUNCTION", "VARIABLE"], gridSize: 50 },
-                    { level: 5, commands: ["REGISTER", "SEGMENT"], gridSize: 50, specialBlocks: [{ type: 'SLOW', col: 5, row: 5 }, { type: 'SLOW', col: 5, row: 6 }] },
-                    { level: 6, commands: ["PROTOCOL", "HANDSHAKE"], gridSize: 45, enemies: [{ type: 'RASTREADOR', startX: 10, startY: 10, params: { speed: 600 } }] },
-                    { level: 7, commands: ["SYNCHRONIZE", "ACKNOWLEDGE"], gridSize: 45, specialBlocks: [ { type: 'T-PORT', id: 1, targetId: 2, col: 1, row: 8, color: '#A43BFF' }, { type: 'T-PORT', id: 2, targetId: 1, col: 13, row: 2, color: '#A43BFF' } ] },
-                    { level: 8, commands: ["AUTHENTICATE", "PERMISSION"], gridSize: 40 },
-                    { level: 9, commands: ["DECRYPTION", "FIREWALL"], gridSize: 40, enemies: [{ type: 'PATRULLA', startX: 1, startY: 5, params: { endX: 10, endY: 5, speed: 0.05 } }, { type: 'RASTREADOR', startX: 15, startY: 1, params: { speed: 700 } }] },
-                    { level: 10, commands: ["COMPILATION", "INTERPRETER"], gridSize: 35 },
-                    { level: 11, commands: ["OPTIMIZATION", "MULTITHREAD"], gridSize: 35, specialBlocks: [{ type: 'SOLID', col: 8, row: 8 }]},
-                    { level: 12, commands: ["VIRTUALIZATION", "SUPERCOMPUTER"], gridSize: 30 }
+                    { level: 1, commandCategory: 'LEN_4', gridSize: 60 },
+                    { level: 2, commandCategory: 'LEN_5', gridSize: 55 },
+                    { level: 3, commandCategory: 'LEN_6', gridSize: 55, specialBlocks: [{ type: 'SOLID', col: 3, row: 4 }, { type: 'SOLID', col: 4, row: 4 }, { type: 'SOLID', col: 8, row: 2 }, { type: 'SOLID', col: 9, row: 2 }], enemies: [{ type: 'PATRULLA', startX: 1, startY: 6, params: { endX: 10, endY: 6, speed: 0.03 } }] },
+                    { level: 4, commandCategory: 'LEN_7', gridSize: 50, specialBlocks: [{ type: 'SOLID', col: 2, row: 2 }, { type: 'SOLID', col: 2, row: 3 }, { type: 'SOLID', col: 8, row: 5 }, { type: 'SOLID', col: 8, row: 6 }, { type: 'SOLID', col: 5, row: 8 }], enemies: [{ type: 'PATRULLA', startX: 1, startY: 5, params: { endX: 10, endY: 5, speed: 0.04 } }, { type: 'PATRULLA', startX: 10, startY: 1, params: { endX: 10, endY: 8, speed: 0.03 } }] },
+                    { level: 5, commandCategory: 'LEN_8', gridSize: 50, specialBlocks: [{ type: 'SLOW', col: 3, row: 3 }, { type: 'SLOW', col: 4, row: 3 }, { type: 'SLOW', col: 5, row: 3 }, { type: 'SLOW', col: 3, row: 4 }, { type: 'SLOW', col: 4, row: 4 }, { type: 'SLOW', col: 5, row: 4 }], enemies: [{ type: 'PATRULLA', startX: 1, startY: 8, params: { endX: 12, endY: 8, speed: 0.05 } }] },
+                    { level: 6, commandCategory: 'LEN_8', gridSize: 45, specialBlocks: [{ type: 'SOLID', col: 5, row: 1 }, { type: 'SOLID', col: 5, row: 2 }, { type: 'SOLID', col: 5, row: 3 }, { type: 'SOLID', col: 5, row: 4 }], enemies: [{ type: 'RASTREADOR', startX: 10, startY: 10, params: { speed: 700 } }] },
+                    { level: 7, commandCategory: 'LEN_9', gridSize: 45, specialBlocks: [{ type: 'SOLID', col: 4, row: 4 }, { type: 'SOLID', col: 5, row: 4 }, { type: 'SOLID', col: 6, row: 4 }, { type: 'SOLID', col: 7, row: 4 }, { type: 'SOLID', col: 8, row: 4 }, { type: 'SOLID', col: 9, row: 4 }], enemies: [{ type: 'RASTREADOR', startX: 1, startY: 8, params: { speed: 650 } }] },
+                    { level: 8, commandCategory: 'LEN_9', gridSize: 40, specialBlocks: [{ type: 'SOLID', col: 3, row: 8 }, { type: 'SOLID', col: 4, row: 8 }, { type: 'SOLID', col: 5, row: 8 }, { type: 'SLOW', col: 8, row: 2 }, { type: 'SLOW', col: 9, row: 2 }, { type: 'SLOW', col: 10, row: 2 }], enemies: [{ type: 'PATRULLA', startX: 1, startY: 10, params: { endX: 15, endY: 10, speed: 0.05 } }, { type: 'RASTREADOR', startX: 15, startY: 1, params: { speed: 750 } }] },
+                    { level: 9, commandCategory: 'LEN_11', gridSize: 40, specialBlocks: [{ type: 'T-PORT', id: 1, targetId: 2, col: 1, row: 1, color: '#A43BFF' }, { type: 'T-PORT', id: 2, targetId: 1, col: 18, row: 12, color: '#A43BFF' }, { type: 'SOLID', col: 9, row: 0 }, { type: 'SOLID', col: 9, row: 1 }, { type: 'SOLID', col: 9, row: 2 }, { type: 'SOLID', col: 9, row: 3 }, { type: 'SOLID', col: 9, row: 4 }, { type: 'SOLID', col: 9, row: 5 }, { type: 'SOLID', col: 9, row: 6 }], enemies: [{ type: 'RASTREADOR', startX: 18, startY: 1, params: {speed: 650} }, { type: 'RASTREADOR', startX: 1, startY: 12, params: { speed: 600 } }] },
+                    { level: 10, commandCategory: 'LEN_11', gridSize: 35, specialBlocks: [{ type: 'SLOW', col: 5, row: 5 }, { type: 'SLOW', col: 6, row: 5 }, { type: 'SLOW', col: 7, row: 5 }, { type: 'SLOW', col: 8, row: 5 }, { type: 'SLOW', col: 9, row: 5 }, { type: 'SOLID', col: 1, row: 8 }, { type: 'SOLID', col: 2, row: 8 }, { type: 'SOLID', col: 3, row: 8 }], enemies: [{ type: 'PATRULLA', startX: 1, startY: 10, params: { endX: 18, endY: 10, speed: 0.06 } }, { type: 'RASTREADOR', startX: 1, startY: 1, params: { speed: 600 } }] },
+                    { level: 11, commandCategory: 'LEN_12_PLUS', gridSize: 35, specialBlocks: [{ type: 'T-PORT', id: 3, targetId: 4, col: 1, row: 1, color: '#FFC700' }, { type: 'T-PORT', id: 4, targetId: 3, col: 18, row: 18, color: '#FFC700' }, { type: 'SOLID', col: 8, row: 8 }, { type: 'SOLID', col: 9, row: 8 }, { type: 'SOLID', col: 10, row: 8 }], enemies: [{ type: 'RASTREADOR', startX: 1, startY: 18, params: { speed: 550 } }, { type: 'RASTREADOR', startX: 18, startY: 1, params: { speed: 650 } }] },
+                    { level: 12, commandCategory: 'LEN_12_PLUS', gridSize: 30, specialBlocks: [{ type: 'SLOW', col: 5, row: 5 }, { type: 'SOLID', col: 10, row: 10 }, { type: 'T-PORT', id: 5, targetId: 6, col: 1, row: 20, color: '#00FF8A' }, { type: 'T-PORT', id: 6, targetId: 5, col: 20, row: 1, color: '#00FF8A' }], enemies: [{ type: 'PATRULLA', startX: 1, startY: 13, params: { endX: 22, endY: 13, speed: 0.08 } }, { type: 'RASTREADOR', startX: 1, startY: 1, params: { speed: 600 } }, { type: 'RASTREADOR', startX: 22, startY: 22, params: { speed: 700 } }] }
                 ]
+            };
+            const SHOP_ITEMS = {
+                shield: { name: "ESCUDO DE ENERGIA", desc: "Absorbe una colision con una entidad hostil.", cost: 2500, keyHint: '1' },
+                bypass: { name: "CHIP DE OMISION", desc: "Marca la siguiente letra requerida como 'recogida'.", cost: 4000, keyHint: '2' },
+                speed: { name: "SOBRECARGA TEMPORAL", desc: "Aumenta la velocidad del operador por 5 segundos.", cost: 1500, keyHint: '3' }
+            };
+            const ACHIEVEMENT_DATA = {
+                'NOVICE': { name: 'NOVATO', desc: 'Completa tu primer nivel.' },
+                'MAZE_MASTER': { name: 'MAESTRO DEL LABERINTO', desc: 'Completa los 12 niveles del Modo Laberinto.' },
+                'FIELD_EXPLORER': { name: 'EXPLORADOR DE CAMPO ABIERTO', desc: 'Completa los 12 niveles del Modo Campo Abierto.' },
+                'UNTOUCHABLE': { name: 'INTOCABLE', desc: 'Completa un nivel con enemigos sin recibir daño.' },
+                'TYCOON': { name: 'MAGNATE', desc: 'Acumula 100,000 puntos totales.' },
+                'COLLECTOR': { name: 'COLECCIONISTA', desc: 'Compra al menos un item de cada tipo en el Terminal.' }
             };
 
             const PALETTES = { 'CODIGO_CIAN': { bg: '#08080A', text: '#B0B4C0', accent: '#00FFFF', error: '#FF1A4B' }, 'VOLCAN_FUEGO': { bg: '#100505', text: '#D6C2C2', accent: '#FF1A4B', error: '#E8FF3B' }, 'JUNGLA_SECRETA': { bg: '#051007', text: '#C2D6C7', accent: '#00FF41', error: '#FF6B00' }, 'GALAXIA_PURPURA': { bg: '#0C0510', text: '#CEC2D6', accent: '#A43BFF', error: '#3BFFF8' }, 'TESORO_DORADO': { bg: '#1A1405', text: '#E0D6C2', accent: '#FFC700', error: '#FF3B3B' }, 'OCEANO_PROFUNDO': { bg: '#050C1A', text: '#C2D0E0', accent: '#007BFF', error: '#FFA500' }, 'NEON_ELECTRICO': { bg: '#000010', text: '#B0B0FF', accent: '#39FF14', error: '#FF007F' }, 'AURORA_BOREAL': { bg: '#001018', text: '#CCEFFF', accent: '#00FFD5', error: '#FF00D5' }, };
             const PALETTE_ORDER = Object.keys(PALETTES);
-            const state = { currentView: 'preload', operatorName: '', currentMode: null, isShiftActive: false, soundOn: true, currentPaletteIndex: 0, validationAttempt: '', playerData: { totalPoints: 0 } };
+            const state = { currentView: 'preload', operatorName: '', currentMode: null, isShiftActive: false, soundOn: true, currentPaletteIndex: 0, validationAttempt: '', dpadVisible: true, playerData: { totalPoints: 0, inventory: {}, stats: {}, achievements: {} } };
             const dom = {
                 body: document.body,
-                windows: { preload: document.getElementById('preload'), title: document.getElementById('title'), profiles: document.getElementById('profiles'), modeSelect: document.getElementById('modeSelect'), player: document.getElementById('player'), mainMenu: document.getElementById('mainMenu'), game: document.getElementById('game'), validation: document.getElementById('validation'), victory: document.getElementById('victory') },
+                windows: { preload: document.getElementById('preload'), title: document.getElementById('title'), profiles: document.getElementById('profiles'), modeSelect: document.getElementById('modeSelect'), player: document.getElementById('player'), mainMenu: document.getElementById('mainMenu'), terminal: document.getElementById('terminal'), stats: document.getElementById('stats'), game: document.getElementById('game'), validation: document.getElementById('validation'), victory: document.getElementById('victory') },
                 profileGrid: document.getElementById('profile-grid'),
                 modeButtons: document.querySelectorAll('.mode-button'),
                 playerNameOutput: document.getElementById('player-name-output'), virtualKeyboard: document.getElementById('virtualKeyboard'), keyboardWrapper: document.getElementById('keyboard-wrapper'),
                 mainMenuPlayerName: document.getElementById('mainMenu-player-name'), mainMenuTotalPoints: document.getElementById('mainMenu-total-points'), mainMenuTitle: document.getElementById('mainMenu-title'), levelGrid: document.getElementById('level-grid'),
-                gameHud: { target: document.getElementById('hud-target'), score: document.getElementById('hud-score'), totalPoints: document.getElementById('hud-total-points') }, 
+                terminalTotalPoints: document.getElementById('terminal-total-points'), shopItemsContainer: document.getElementById('shop-items-container'),
+                statsDisplay: document.getElementById('stats-display'), achievementsGrid: document.getElementById('achievements-grid'),
+                gameHud: { target: document.getElementById('hud-target'), score: document.getElementById('hud-score'), totalPoints: document.getElementById('hud-total-points'), inventory: document.getElementById('game-inventory'), dpadToggleBtn: document.getElementById('dpad-toggle-btn') }, 
                 gameCanvas: document.getElementById('game-canvas'), gameCanvasWrapper: document.getElementById('game-canvas-wrapper'),
-                dpadBtns: document.querySelectorAll('.dpad-btn'),
+                dpadContainer: document.getElementById('dpad-container'), dpadBtns: document.querySelectorAll('.dpad-btn'),
                 settingsButton: document.getElementById('settings-button'), settingsPanel: document.getElementById('settings-panel'),
                 soundBtn: document.getElementById('sound-btn'), paletteBtn: document.getElementById('palette-btn'),
                 changePlayerBtn: document.getElementById('change-player-btn'), changeModeBtn: document.getElementById('change-mode-btn'), exitBtn: document.getElementById('exit-btn'),
@@ -224,7 +364,16 @@
                 saveProfiles: (profiles) => { try { localStorage.setItem('analyzer:profiles', JSON.stringify(profiles)); } catch(e) {} },
                 saveProfile: (name) => { const profiles = storage.loadProfiles(); if (!profiles.includes(name)) { profiles.push(name); storage.saveProfiles(profiles); } },
                 deleteProfile: (name) => { let profiles = storage.loadProfiles(); profiles = profiles.filter(p => p !== name); storage.saveProfiles(profiles); localStorage.removeItem(`analyzer:playerData:${name}`); ['MAZE', 'OPEN_FIELD'].forEach(mode => { for (let i=1; i<=12; i++) { localStorage.removeItem(`analyzer:level_done:${mode}:${i}:${name}`); localStorage.removeItem(`analyzer:highscore:${mode}:${i}:${name}`); } }); },
-                loadPlayerData: (name) => { try { const d = localStorage.getItem(`analyzer:playerData:${name}`); return d ? JSON.parse(d) : { totalPoints: 0 }; } catch(e) { return { totalPoints: 0 }; } },
+                loadPlayerData: (name) => { 
+                    try { 
+                        const d = localStorage.getItem(`analyzer:playerData:${name}`); 
+                        const data = d ? JSON.parse(d) : { totalPoints: 0, inventory: {}, stats: {}, achievements: {} }; 
+                        if (!data.inventory) data.inventory = {};
+                        if (!data.stats) data.stats = { timePlayed: 0, levelsCompleted_MAZE: 0, levelsCompleted_OPEN_FIELD: 0 };
+                        if (!data.achievements) data.achievements = {};
+                        return data; 
+                    } catch(e) { return { totalPoints: 0, inventory: {}, stats: {}, achievements: {} }; } 
+                },
                 savePlayerData: (name, data) => { try { localStorage.setItem(`analyzer:playerData:${name}`, JSON.stringify(data)); } catch(e) {} },
                 markLevelAsDone: (mode, level, name) => { try { localStorage.setItem(`analyzer:level_done:${mode}:${level}:${name}`, '1'); } catch(e) {} },
                 isLevelDone: (mode, level, name) => { try { return localStorage.getItem(`analyzer:level_done:${mode}:${level}:${name}`) === '1'; } catch(e) { return false; } },
@@ -233,7 +382,55 @@
                 saveSoundPref: (isOn) => { try { localStorage.setItem('analyzer:soundOn', isOn ? '1' : '0'); } catch(e) {} },
                 loadSoundPref: () => { try { return localStorage.getItem('analyzer:soundOn') !== '0'; } catch(e) { return true; } },
                 savePalette: (name) => { try { localStorage.setItem('analyzer:palette', name); } catch(e) {} },
-                loadPalette: () => { try { return localStorage.getItem('analyzer:palette') || 'CODIGO_CIAN'; } catch(e) { return 'CODIGO_CIAN'; } }
+                loadPalette: () => { try { return localStorage.getItem('analyzer:palette') || 'CODIGO_CIAN'; } catch(e) { return 'CODIGO_CIAN'; } },
+                saveDpadPref: (isVisible) => { try { localStorage.setItem('analyzer:dpadVisible', isVisible ? '1' : '0'); } catch(e) {} },
+                loadDpadPref: () => { try { return localStorage.getItem('analyzer:dpadVisible') !== '0'; } catch(e) { return true; } },
+            };
+
+            const statsManager = {
+                unlock: function(achievementId) {
+                    if (!state.playerData.achievements[achievementId]) {
+                        state.playerData.achievements[achievementId] = true;
+                    }
+                },
+                checkAchievements: function() {
+                    const { stats, achievements, inventory, totalPoints } = state.playerData;
+                    if (!achievements['NOVICE'] && ((stats.levelsCompleted_MAZE || 0) > 0 || (stats.levelsCompleted_OPEN_FIELD || 0) > 0)) {
+                        this.unlock('NOVICE');
+                    }
+                    if (!achievements['MAZE_MASTER'] && (stats.levelsCompleted_MAZE || 0) >= 12) {
+                        this.unlock('MAZE_MASTER');
+                    }
+                    if (!achievements['FIELD_EXPLORER'] && (stats.levelsCompleted_OPEN_FIELD || 0) >= 12) {
+                        this.unlock('FIELD_EXPLORER');
+                    }
+                    if (!achievements['TYCOON'] && totalPoints >= 100000) {
+                        this.unlock('TYCOON');
+                    }
+                    if (!achievements['COLLECTOR']) {
+                        if ((inventory.shield || 0) > 0 && (inventory.bypass || 0) > 0 && (inventory.speed || 0) > 0) {
+                            this.unlock('COLLECTOR');
+                        }
+                    }
+                },
+                logEvent: function(eventName, data = {}) {
+                    const { stats } = state.playerData;
+                    
+                    if (eventName === 'GAME_TICK' && data.time) {
+                        stats.timePlayed = (stats.timePlayed || 0) + data.time;
+                    }
+
+                    if (eventName === 'LEVEL_COMPLETE') {
+                        const key = `levelsCompleted_${data.mode}`;
+                        stats[key] = (stats[key] || 0) + 1;
+                        if(data.isUntouchable) {
+                            this.unlock('UNTOUCHABLE');
+                        }
+                    }
+                    
+                    this.checkAchievements();
+                    storage.savePlayerData(state.operatorName, state.playerData);
+                }
             };
 
             const audioManager = {
@@ -253,13 +450,15 @@
                 if (!dom.windows[viewName]) return; const oldView = dom.windows[state.currentView]; if (oldView) oldView.classList.remove('active');
                 state.currentView = viewName; const newView = dom.windows[viewName]; newView.classList.add('active');
                 
-                const isGameOrMenu = (viewName === 'mainMenu' || viewName === 'game');
+                const isGameOrMenu = (viewName === 'mainMenu' || viewName === 'game' || viewName === 'terminal' || viewName === 'stats');
                 dom.settingsButton.style.display = isGameOrMenu ? 'flex' : 'none';
                 if (!isGameOrMenu) { dom.settingsPanel.style.display = 'none'; }
 
                 if (viewName === 'profiles') { generateProfileCards(); }
                 else if (viewName === 'player') { state.operatorName = ''; updatePlayerNameDisplay(); resizeKeyboard(); } 
                 else if (viewName === 'mainMenu') { dom.mainMenuPlayerName.textContent = state.operatorName; dom.mainMenuTotalPoints.textContent = state.playerData.totalPoints; dom.mainMenuTitle.textContent = `MENU NIVELES: ${state.currentMode}`; generateLevelButtons(); }
+                else if (viewName === 'terminal') { populateTerminal(); }
+                else if (viewName === 'stats') { populateStatsScreen(); }
                 else if (viewName === 'validation') {
                     state.validationAttempt = '';
                     dom.validationOutput.textContent = '';
@@ -268,11 +467,64 @@
                     dom.gameHud.totalPoints.textContent = `TOTAL: ${state.playerData.totalPoints}`;
                 }
             }
+            
+            function populateTerminal() {
+                dom.terminalTotalPoints.textContent = state.playerData.totalPoints;
+                const container = dom.shopItemsContainer;
+                container.innerHTML = '';
+
+                for (const id in SHOP_ITEMS) {
+                    const item = SHOP_ITEMS[id];
+                    const currentAmount = state.playerData.inventory[id] || 0;
+                    
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'shop-item';
+                    
+                    const canAfford = state.playerData.totalPoints >= item.cost;
+
+                    itemEl.innerHTML = `
+                        <h3>${item.name} [${currentAmount}]</h3>
+                        <p class="shop-item-details">${item.desc}</p>
+                        <div class="shop-item-footer">
+                            <span class="shop-item-cost">${item.cost} P</span>
+                            <button class="big-button buy-btn ${canAfford ? '' : 'disabled'}" data-item-id="${id}">COMPRAR</button>
+                        </div>
+                    `;
+                    container.appendChild(itemEl);
+                }
+            }
+
+            function populateStatsScreen() {
+                const { stats, achievements } = state.playerData;
+                const statsContainer = dom.statsDisplay;
+                const achievementsContainer = dom.achievementsGrid;
+                
+                const timePlayed = stats.timePlayed || 0;
+                const minutes = Math.floor(timePlayed / 60000);
+                const seconds = Math.floor((timePlayed % 60000) / 1000).toString().padStart(2, '0');
+
+                statsContainer.innerHTML = `
+                    <div class="stat-card">TIEMPO DE JUEGO<div class="value">${minutes}:${seconds}</div></div>
+                    <div class="stat-card">PUNTOS TOTALES<div class="value">${state.playerData.totalPoints}</div></div>
+                    <div class="stat-card">NIVELES LABERINTO<div class="value">${stats.levelsCompleted_MAZE || 0} / 12</div></div>
+                    <div class="stat-card">NIVELES CAMPO ABIERTO<div class="value">${stats.levelsCompleted_OPEN_FIELD || 0} / 12</div></div>
+                `;
+
+                achievementsContainer.innerHTML = '';
+                for (const id in ACHIEVEMENT_DATA) {
+                    const ach = ACHIEVEMENT_DATA[id];
+                    const isUnlocked = achievements[id];
+                    const card = document.createElement('div');
+                    card.className = `achievement-card ${isUnlocked ? 'unlocked' : 'locked'}`;
+                    card.innerHTML = `<h3>${ach.name}</h3><p>${ach.desc}</p>`;
+                    achievementsContainer.appendChild(card);
+                }
+            }
 
             function generateValidationKeyboard(command) {
                 const container = dom.validationKeyboardContainer;
                 container.innerHTML = '';
-                const prng = mulberry32(fnv1a(`${state.operatorName}|validation|${state.currentLevel}`));
+                const prng = mulberry32(fnv1a(`${state.operatorName}|validation|${state.currentMode}|${state.currentLevel}`));
                 
                 let chars = command.split('');
                 for (let i = chars.length - 1; i > 0; i--) {
@@ -378,7 +630,7 @@
 
             const game = {
                 ctx: null, WALL: 1, FLOOR: 0, board: {}, player: {}, state: {}, letters: [], enemies: [], keys: {ArrowUp:false,ArrowDown:false,ArrowLeft:false,ArrowRight:false}, isInitialized: false, grid: [], prng: null, currentConfig: {},
-                letterCache: {}, specialBlocks: [],
+                letterCache: {}, specialBlocks: [], levelInventory: {},
                 trail: [], lastUpdateTime: 0, isShaking: false, shakeStartTime: 0,
                 init: function() { if (this.isInitialized) return; this.ctx = dom.gameCanvas.getContext('2d'); new ResizeObserver(() => { if(state.currentView === 'game') this.resizeCanvas(); }).observe(dom.gameCanvasWrapper); this.isInitialized = true; },
                 createLetterImage: function(char, color) {
@@ -397,10 +649,14 @@
                     if (!level) return;
                     this.currentConfig = { ...level };
                     this.specialBlocks = this.currentConfig.specialBlocks || [];
+                    this.levelInventory = JSON.parse(JSON.stringify(state.playerData.inventory));
+                    this.updateInventoryHud();
                     const seed = fnv1a(`${state.operatorName}|${state.currentMode}|${levelNumber}`);
                     this.prng = mulberry32(seed);
-                    const randomIndex = Math.floor(this.prng() * this.currentConfig.commands.length);
-                    this.currentConfig.command = this.currentConfig.commands[randomIndex];
+                    const commandOptions = WORD_BANK[this.currentConfig.commandCategory];
+                    const randomIndex = Math.floor(this.prng() * commandOptions.length);
+                    this.currentConfig.command = commandOptions[randomIndex];
+
                     state.currentLevel = levelNumber;
                     
                     navigateTo('game');
@@ -408,7 +664,7 @@
                     
                     requestAnimationFrame(() => { this.resizeCanvas(); this.reset(); });
                 },
-                reset: function() { const gridSize = this.currentConfig.gridSize; this.state.score = 0; this.state.collectedCount = 0; this.player = { col: 1, row: 1, targetCol: 1, targetRow: 1, animX: 1 * gridSize, animY: 1 * gridSize, isMoving: false, animProgress: 0, moveDuration: 120, teleportCooldown: 0 }; this.trail = []; this.initializeEnemies(); this.setupLevel(); },
+                reset: function() { const gridSize = this.currentConfig.gridSize; this.state.score = 0; this.state.collectedCount = 0; this.player = { col: 1, row: 1, targetCol: 1, targetRow: 1, animX: 1 * gridSize, animY: 1 * gridSize, isMoving: false, animProgress: 0, moveDuration: 120, teleportCooldown: 0, speedBoostEndTime: 0, wasHit: false }; this.trail = []; this.initializeEnemies(); this.setupLevel(); },
                 resetPlayerPosition: function() {
                     const gridSize = this.currentConfig.gridSize;
                     this.player.col = 1; this.player.row = 1;
@@ -430,12 +686,16 @@
                         });
                     });
                 },
-                resizeCanvas: function() { const w = dom.gameCanvasWrapper; if (w.clientWidth === 0) return; const gridSize = this.currentConfig.gridSize; const mW = w.clientWidth - 20; const mH = w.clientHeight - 20; const c = Math.floor(mW / gridSize); const r = Math.floor(mH / gridSize); this.board.cols = this.currentConfig.type === 'maze' && c % 2 === 0 ? c - 1 : c; this.board.rows = this.currentConfig.type === 'maze' && r % 2 === 0 ? r - 1 : r; dom.gameCanvas.width = this.board.cols * gridSize; dom.gameCanvas.height = this.board.rows * gridSize; },
+                resizeCanvas: function() { const w = dom.gameCanvasWrapper; if (w.clientWidth === 0) return; const gridSize = this.currentConfig.gridSize; const mW = w.clientWidth - 20; const mH = w.clientHeight - 20; const c = Math.floor(mW / gridSize); const r = Math.floor(mH / gridSize); this.board.cols = (state.currentMode === 'MAZE' && c % 2 === 0) ? c - 1 : c; this.board.rows = (state.currentMode === 'MAZE' && r % 2 === 0) ? r - 1 : r; dom.gameCanvas.width = this.board.cols * gridSize; dom.gameCanvas.height = this.board.rows * gridSize; },
                 setupLevel: function() { if (state.currentMode === 'MAZE') { this.setupMaze(); } else { this.setupOpenGrid(); } },
                 setupOpenGrid: function() { this.grid = []; this.letters = []; const command = this.currentConfig.command; const occupied = new Set([`${this.player.col},${this.player.row}`]); this.specialBlocks.forEach(b => occupied.add(`${b.col},${b.row}`)); this.enemies.forEach(e => occupied.add(`${e.startX},${e.startY}`)); for (let i = 0; i < command.length; i++) { let col, row, key; do { col = Math.floor(this.prng() * this.board.cols); row = Math.floor(this.prng() * this.board.rows); key = `${col},${row}`; } while (occupied.has(key)); occupied.add(key); this.letters.push({ char: command[i], col, row, collected: false }); } },
                 setupMaze: function() { this.grid = Array.from({ length: this.board.rows }, () => Array(this.board.cols).fill(this.WALL)); const carve = (x, y) => { this.grid[y][x] = this.FLOOR; const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]]; dirs.sort(() => this.prng() - 0.5); for (let [dx, dy] of dirs) { const nx = x + dx * 2, ny = y + dy * 2; if (ny > 0 && ny < this.board.rows - 1 && nx > 0 && nx < this.board.cols - 1 && this.grid[ny][nx] === this.WALL) { this.grid[y + dy][x + dx] = this.FLOOR; carve(nx, ny); } } }; carve(1, 1); const floorCells = []; for(let r = 0; r < this.board.rows; r++) { for(let c = 0; c < this.board.cols; c++) { if (this.grid[r][c] === this.FLOOR) floorCells.push({col: c, row: r}); } } this.letters = []; const command = this.currentConfig.command; const occupied = new Set([`${this.player.col},${this.player.row}`]); this.specialBlocks.forEach(b => occupied.add(`${b.col},${b.row}`)); this.enemies.forEach(e => occupied.add(`${e.startX},${e.startY}`)); for (let i = 0; i < command.length; i++) { let cell, key; do { cell = floorCells[Math.floor(this.prng() * floorCells.length)]; key = `${cell.col},${cell.row}`; } while (occupied.has(key)); occupied.add(key); this.letters.push({ char: command[i], col: cell.col, row: cell.row, collected: false }); } },
                 update: function(timestamp) {
                     if (!this.lastUpdateTime) this.lastUpdateTime = timestamp;
+                    const timeDelta = timestamp - this.lastUpdateTime;
+                    if (timeDelta > 0 && timeDelta < 1000) { 
+                        statsManager.logEvent('GAME_TICK', { time: timeDelta });
+                    }
                     this.updatePlayer(timestamp);
                     this.updateEnemies(timestamp);
                     this.checkEnemyCollisions(timestamp);
@@ -443,9 +703,12 @@
                 },
                 updatePlayer: function(timestamp) {
                     this.trail.forEach(p => p.life -= 0.05); this.trail = this.trail.filter(p => p.life > 0);
+                    
+                    const moveDuration = (timestamp < this.player.speedBoostEndTime) ? this.player.moveDuration * 0.5 : 120;
+
                     if (this.player.isMoving) {
                         this.player.animProgress += timestamp - this.lastUpdateTime;
-                        const t = Math.min(this.player.animProgress / this.player.moveDuration, 1);
+                        const t = Math.min(this.player.animProgress / moveDuration, 1);
                         const gridSize = this.currentConfig.gridSize;
                         const startX = this.player.col * gridSize; const startY = this.player.row * gridSize;
                         const endX = this.player.targetCol * gridSize; const endY = this.player.targetRow * gridSize;
@@ -456,7 +719,7 @@
                         if (this.keys.ArrowUp) { targetRow--; moved = true; } else if (this.keys.ArrowDown) { targetRow++; moved = true; } else if (this.keys.ArrowLeft) { targetCol--; moved = true; } else if (this.keys.ArrowRight) { targetCol++; moved = true; }
                         
                         const isOutOfBounds = targetRow < 0 || targetRow >= this.board.rows || targetCol < 0 || targetCol >= this.board.cols;
-                        const isWall = !isOutOfBounds && this.grid.length && this.grid[targetRow] && this.grid[targetRow][targetCol] !== this.FLOOR;
+                        const isWall = !isOutOfBounds && this.grid.length && this.grid[targetRow][targetCol] !== this.FLOOR;
                         const isSolidBlock = !isOutOfBounds && this.specialBlocks.some(b => b.type === 'SOLID' && b.col === targetCol && b.row === targetRow);
 
                         if (moved && (isOutOfBounds || isWall || isSolidBlock)) {
@@ -498,6 +761,11 @@
                 checkEnemyCollisions: function(timestamp) {
                     this.enemies.forEach(e => {
                         if (this.player.col === e.col && this.player.row === e.row) {
+                            if (this.levelInventory.shield > 0) {
+                                this.useItem('shield');
+                                return;
+                            }
+                            this.player.wasHit = true;
                             audioManager.playSound('error');
                             this.isShaking = true; this.shakeStartTime = timestamp;
                             this.state.score = Math.max(0, this.state.score - 50);
@@ -525,7 +793,45 @@
                         }
                     }
                 },
-                checkCollisions: function(timestamp) { const req = this.currentConfig.command[this.state.collectedCount]; if (!req) return; const target = this.letters.find(l => !l.collected && l.char === req && this.player.col === l.col && this.player.row === l.row); if (target) { audioManager.playSound('collect'); target.collected = true; this.state.collectedCount++; this.state.score += 100; if (this.state.collectedCount === this.currentConfig.command.length) { this.state.score += 1000; navigateTo('validation'); } } else { const wrongLetter = this.letters.find(l => !l.collected && this.player.col === l.col && this.player.row === l.row); if (wrongLetter) { audioManager.playSound('error'); this.isShaking = true; this.shakeStartTime = timestamp; } } },
+                checkCollisions: function(timestamp) { const req = this.currentConfig.command[this.state.collectedCount]; if (!req) return; const target = this.letters.find(l => !l.collected && l.char === req && this.player.col === l.col && this.player.row === l.row); if (target) { audioManager.playSound('collect'); target.collected = true; this.state.collectedCount++; this.state.score += 100; if (this.state.collectedCount === this.currentConfig.command.length) { this.state.score += 1000; this.finalizeInventory(); navigateTo('validation'); } } else { const wrongLetter = this.letters.find(l => !l.collected && this.player.col === l.col && this.player.row === l.row); if (wrongLetter) { audioManager.playSound('error'); this.isShaking = true; this.shakeStartTime = timestamp; } } },
+                updateInventoryHud: function() {
+                    dom.gameHud.inventory.innerHTML = '';
+                    for(const id in this.levelInventory) {
+                        if (this.levelInventory[id] > 0) {
+                            const item = SHOP_ITEMS[id];
+                            const itemEl = document.createElement('div');
+                            itemEl.className = 'inventory-item';
+                            itemEl.innerHTML = `<span class="key-hint">${item.keyHint}</span> ${this.levelInventory[id]}`;
+                            dom.gameHud.inventory.appendChild(itemEl);
+                        }
+                    }
+                },
+                useItem: function(itemId) {
+                    if (this.levelInventory[itemId] > 0) {
+                        this.levelInventory[itemId]--;
+                        if (itemId === 'speed') {
+                            this.player.speedBoostEndTime = this.lastUpdateTime + 5000; // 5 seconds from now
+                        } else if (itemId === 'bypass') {
+                            const nextLetterIndex = this.state.collectedCount;
+                            const targetChar = this.currentConfig.command[nextLetterIndex];
+                            const nextLetter = this.letters.find(l => !l.collected && l.char === targetChar);
+                            if (nextLetter) {
+                                nextLetter.collected = true;
+                                this.state.collectedCount++;
+                                if (this.state.collectedCount === this.currentConfig.command.length) {
+                                    this.state.score += 1000; this.finalizeInventory(); navigateTo('validation');
+                                }
+                            }
+                        }
+                        this.updateInventoryHud();
+                        return true;
+                    }
+                    return false;
+                },
+                finalizeInventory: function() {
+                    state.playerData.inventory = { ...this.levelInventory };
+                    storage.savePlayerData(state.operatorName, state.playerData);
+                },
                 draw: function(timestamp) {
                     if (!this.currentConfig || !this.currentConfig.gridSize || this.player.animX === undefined) return;
                     this.ctx.save();
@@ -540,6 +846,8 @@
                     this.letters.forEach(l => { if (!l.collected) { const color = (l.char === requiredChar) ? 'yellow' : getComputedStyle(document.body).getPropertyValue('--color-accent-bios'); const key = `${l.char}_${color}`; const letterImg = this.letterCache[key]; if (letterImg && letterImg.complete) { this.ctx.drawImage(letterImg, l.col * gridSize, l.row * gridSize, gridSize, gridSize); } } });
                     this.drawEnemies();
                     this.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--color-accent-primary'); this.ctx.shadowColor = getComputedStyle(document.body).getPropertyValue('--color-accent-primary'); this.ctx.shadowBlur = 10; this.ctx.fillRect(this.player.animX, this.player.animY, gridSize, gridSize);
+                    if (timestamp < this.player.speedBoostEndTime) { this.ctx.strokeStyle = '#FFFF00'; this.ctx.lineWidth = 3; this.ctx.strokeRect(this.player.animX, this.player.animY, gridSize, gridSize); }
+                    if (this.levelInventory.shield > 0) { this.ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--color-accent-bios'); this.ctx.lineWidth = 3; this.ctx.strokeRect(this.player.animX-3, this.player.animY-3, gridSize+6, gridSize+6); }
                     this.ctx.restore();
                     let targetHTML = ''; for (let i = 0; i < this.currentConfig.command.length; i++) { const char = this.currentConfig.command[i]; if (i < this.state.collectedCount) { targetHTML += `<span class="collected">${char}</span>`; } else { targetHTML += `<span>${char}</span>`; } }
                     dom.gameHud.target.innerHTML = `TARGET: ${targetHTML}`; 
@@ -567,11 +875,29 @@
                 }
             };
 
+            function runPreflightChecks() {
+                return new Promise((resolve, reject) => {
+                    const requiredWindows = ['preload', 'title', 'profiles', 'modeSelect', 'player', 'mainMenu', 'terminal', 'stats', 'game', 'validation', 'victory'];
+                    for (const id of requiredWindows) {
+                        if (!document.getElementById(id)) {
+                            reject(new Error(`[PREFLIGHT][ERR] Missing critical window: #${id}`));
+                            return;
+                        }
+                    }
+                    resolve('[PREFLIGHT][OK] All systems nominal.');
+                });
+            }
+
             function init() {
-                if ('ontouchstart' in window) document.body.classList.add('touch-device');
+                if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                    document.body.classList.add('touch-device');
+                }
                 applyPalette(storage.loadPalette() || 'CODIGO_CIAN');
                 state.soundOn = storage.loadSoundPref();
                 dom.soundBtn.textContent = `SONIDO: ${state.soundOn ? 'ON' : 'OFF'}`;
+                state.dpadVisible = storage.loadDpadPref();
+                dom.dpadContainer.classList.toggle('visible', state.dpadVisible);
+                dom.gameHud.dpadToggleBtn.classList.toggle('active', state.dpadVisible);
                 
                 document.body.addEventListener('click', (e) => {
                     audioManager.init();
@@ -586,6 +912,21 @@
                             state.validationAttempt += key;
                         }
                         dom.validationOutput.textContent = state.validationAttempt;
+                        audioManager.playSound('click');
+                        return;
+                    }
+
+                    const buyBtn = target.closest('.buy-btn');
+                    if (buyBtn) {
+                        const itemId = buyBtn.dataset.itemId;
+                        const item = SHOP_ITEMS[itemId];
+                        if (state.playerData.totalPoints >= item.cost) {
+                            state.playerData.totalPoints -= item.cost;
+                            state.playerData.inventory[itemId] = (state.playerData.inventory[itemId] || 0) + 1;
+                            storage.savePlayerData(state.operatorName, state.playerData);
+                            statsManager.checkAchievements();
+                            populateTerminal();
+                        }
                         audioManager.playSound('click');
                         return;
                     }
@@ -615,9 +956,20 @@
                         return;
                     }
 
+                    if (target.id === 'dpad-toggle-btn') {
+                        state.dpadVisible = !state.dpadVisible;
+                        storage.saveDpadPref(state.dpadVisible);
+                        dom.dpadContainer.classList.toggle('visible', state.dpadVisible);
+                        target.classList.toggle('active', state.dpadVisible);
+                        return;
+                    }
+
                     if (target.id === 'new-player-btn') { navigateTo('player'); return; }
                     if (target.id === 'victory-continue-btn') { navigateTo('mainMenu'); return; }
                     if (target.id === 'change-mode-btn') { navigateTo('modeSelect'); return; }
+                    if (target.id === 'terminal-btn') { navigateTo('terminal'); return; }
+                    if (target.id === 'back-to-menu-btn') { navigateTo('mainMenu'); return; }
+                    if (target.id === 'stats-btn' || target.id === 'stats-back-btn') { navigateTo(target.id === 'stats-btn' ? 'stats' : 'mainMenu'); return; }
                     
                     if (target.id === 'settings-button') { dom.settingsPanel.style.display = (dom.settingsPanel.style.display === 'block') ? 'none' : 'block'; return; }
                     if (target.id === 'sound-btn') { state.soundOn = !state.soundOn; storage.saveSoundPref(state.soundOn); dom.soundBtn.textContent = `SONIDO: ${state.soundOn ? 'ON' : 'OFF'}`; return; }
@@ -626,10 +978,13 @@
                     if (target.id === 'exit-btn') { window.close(); return; }
                     if (target.id === 'validate-word-btn') { 
                         if(state.validationAttempt.toUpperCase() === game.currentConfig.command) {
+                            const wasUntouchable = game.currentConfig.enemies && game.currentConfig.enemies.length > 0 && !game.player.wasHit;
                             storage.markLevelAsDone(state.currentMode, state.currentLevel, state.operatorName); 
                             storage.setHighscore(state.currentMode, state.currentLevel, state.operatorName, game.state.score);
                             state.playerData.totalPoints += game.state.score;
-                            storage.savePlayerData(state.operatorName, state.playerData);
+                            game.finalizeInventory(); 
+                            statsManager.logEvent('LEVEL_COMPLETE', { mode: state.currentMode, isUntouchable: wasUntouchable });
+                            
                             audioManager.playSound('complete');
                             navigateTo('victory');
                         } else {
@@ -654,6 +1009,10 @@
                         handleKeyPress('<-');
                     } else if (/^[a-zA-Z]$/.test(e.key) && state.currentView === 'player') { 
                         handleKeyPress(e.key.toUpperCase()); 
+                    } else if (state.currentView === 'game') {
+                        if (e.key === '1') game.useItem('shield');
+                        else if (e.key === '2') game.useItem('bypass');
+                        else if (e.key === '3') game.useItem('speed');
                     }
                     if(e.key in game.keys) { e.preventDefault(); game.keys[e.key] = true; }
                 });
@@ -664,7 +1023,26 @@
                 createVirtualKeyboard(); 
                 game.init();
                 requestAnimationFrame(game.gameLoop.bind(game));
-                setTimeout(() => navigateTo('title'), 2000);
+                
+                const preflightStatus = document.getElementById('preflight-status');
+                const startupChecks = runPreflightChecks();
+                const startupTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('System timeout. Preflight checks failed to complete.')), 3000));
+
+                Promise.race([startupChecks, startupTimeout])
+                    .then(successMsg => {
+                        preflightStatus.innerHTML = successMsg.replace('[PREFLIGHT][OK]', '<span style="color:var(--color-accent-bios)">[PREFLIGHT][OK]</span>');
+                        setTimeout(() => navigateTo('title'), 1000);
+                    })
+                    .catch(error => {
+                        const biosTextContainer = document.querySelector('#preload .bios-text');
+                        preflightStatus.innerHTML = `<span style="color:var(--color-accent-error)">${error.message}</span>`;
+                        const forceButton = document.createElement('button');
+                        forceButton.textContent = 'FORZAR ARRANQUE';
+                        forceButton.className = 'big-button';
+                        forceButton.style.marginTop = '2rem';
+                        forceButton.onclick = () => navigateTo('title');
+                        biosTextContainer.parentElement.appendChild(forceButton);
+                    });
             }
             init();
         });
