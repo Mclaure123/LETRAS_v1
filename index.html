@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>ANALYZER - Build 8.8 (Safe Reset Protocol) [RECOVERY BUILD]</title>
+    <title>ANALYZER - Build 8.9 (Patrol Logic Fix) [RECOVERY BUILD]</title>
     <style>
         :root {
             --color-background-primary: #08080A; --color-element-primary: #141414; --color-funckey-primary: #2A2A2A;
@@ -180,7 +180,7 @@
     <div id="preload" class="window active">
         <div class="container centered-content">
             <div class="bios-text">
-                <p>ANALYZER BIOS v1.8 (c) McLaure</p>
+                <p>ANALYZER BIOS v1.9 (c) McLaure</p>
                 <p>Initializing KERNEL...</p>
                 <p>Memory Check: 65536K OK</p>
                 <p>Loading UI assets... DONE</p>
@@ -685,6 +685,22 @@
                     }
                 },
 
+                hasLineOfSight: function(x0, y0, x1, y1) {
+                    if (state.currentMode !== 'MAZE') return true;
+                    let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+                    let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+                    let err = dx + dy, e2;
+
+                    while (true) {
+                        if (this.grid[y0] && this.grid[y0][x0] === this.WALL) return false;
+                        if (x0 === x1 && y0 === y1) break;
+                        e2 = 2 * err;
+                        if (e2 >= dy) { err += dy; x0 += sx; }
+                        if (e2 <= dx) { err += dx; y0 += sy; }
+                    }
+                    return true;
+                },
+
                 createLetterImage: function(char, color) {
                     const font_family = getComputedStyle(document.body).getPropertyValue('--font-family');
                     const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><text x="50%" y="50%" font-size="95" font-family="${font_family}" font-weight="bold" fill="${color}" text-anchor="middle" dominant-baseline="central">${char}</text></svg>`;
@@ -737,7 +753,7 @@
                         animX: startCol * gridSize, animY: startRow * gridSize,
                         isMoving: false, animProgress: 0, moveDuration: 120,
                         teleportCooldown: 0, speedBoostEndTime: 0, wasHit: false,
-                        isInvincible: true, invincibilityTimer: 90 // ~1.5 seconds at 60fps
+                        isInvincible: true, invincibilityTimer: 90 
                     };
                     if (isInitialSetup) {
                         this.player.initialCol = startCol;
@@ -804,13 +820,21 @@
                             if (enemyConfig.type === 'PATRULLA') {
                                 patrolParams.startX = pos.col;
                                 patrolParams.startY = pos.row;
-                                const patrolLength = 5 + Math.floor(this.prng() * 5);
-                                if (this.prng() > 0.5) {
-                                    patrolParams.endX = Math.max(0, Math.min(this.board.cols - 1, pos.col + (this.prng() > 0.5 ? patrolLength : -patrolLength)));
-                                    patrolParams.endY = pos.row;
-                                } else {
+                                
+                                let foundPath = false;
+                                for (let attempt = 0; attempt < 20; attempt++) {
+                                    const ring = 3 + Math.floor(this.prng() * 5);
+                                    const endPos = this.findEmptySpotInRing(pos.col, pos.row, ring);
+                                    if(endPos && this.hasLineOfSight(pos.col, pos.row, endPos.col, endPos.row)) {
+                                        patrolParams.endX = endPos.col;
+                                        patrolParams.endY = endPos.row;
+                                        foundPath = true;
+                                        break;
+                                    }
+                                }
+                                if (!foundPath) { // Fallback: stationary
                                     patrolParams.endX = pos.col;
-                                    patrolParams.endY = Math.max(0, Math.min(this.board.rows - 1, pos.row + (this.prng() > 0.5 ? patrolLength : -patrolLength)));
+                                    patrolParams.endY = pos.row;
                                 }
                             }
 
